@@ -1,0 +1,1 @@
+Here you will find examples for how to set up the measurements in different files. The procedures and experiments are defined in seperate files, then called in Run.py which can be executed in VSCode/atom/Jupyter etc.
