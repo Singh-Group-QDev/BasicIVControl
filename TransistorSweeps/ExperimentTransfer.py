@@ -8,23 +8,23 @@ from time import sleep
 from pymeasure.log import console_log
 from pymeasure.display.windows import ManagedWindow
 from pymeasure.experiment import Results, unique_filename
-from InstrumentControlExamples.ProcedureIV import ProcedureIV
+from TransistorSweeps.ProcedureTransfer import ProcedureTransfer
 
-class ExperimentIV(ManagedWindow):
+class ExperimentTransfer(ManagedWindow):
     def __init__(self):
         super().__init__(
-            procedure_class = ProcedureIV,
-            inputs=['max_current', 'min_current', 'current_step', 'delay', 'voltage_range'],
-            displays=['max_current', 'min_current', 'current_step', 'delay', 'voltage_range'],
-            x_axis='Current (A)',
-            y_axis='Voltage (V)'
+            procedure_class = ProcedureTransfer,
+            inputs=['max_voltage', 'min_voltage', 'voltage_step', 'compliance_current', 'delay', 'current_range', 'gate_voltage'],
+            displays=['max_voltage', 'min_voltage', 'voltage_step', 'compliance_current', 'delay', 'current_range', 'gate_voltage'],
+            x_axis='SD Voltage (V)',
+            y_axis='SD Current (A)'
         )
-        self.setWindowTitle('GUI Example')
+        self.setWindowTitle('Transistor Transfer')
  
     def queue(self):
 
         directory = "./"  # Change this to the desired directory
-        filename = unique_filename(directory, prefix='IV')
+        filename = unique_filename(directory, prefix='TTO')
 
         procedure = self.make_procedure()
         results = Results(procedure, filename)

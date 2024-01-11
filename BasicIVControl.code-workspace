@@ -1,0 +1,15 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../pymeasure/pymeasure"
+		}
+	],
+	"settings": {
+		"terminal.integrated.env.windows": {
+			"PYTHONPATH":"C:/Users/QET/Documents/GitHub/pymeasure"
+		}
+	}
+}
