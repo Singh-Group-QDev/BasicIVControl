@@ -24,10 +24,12 @@ class RandomExperiment(ManagedWindow):
     def queue(self):
         filename = tempfile.mktemp()
 
-        procedure = RandomProcedure()
-        procedure.seed = str(self.inputs.seed.text())
-        procedure.iterations = self.inputs.iterations.value()
-        procedure.delay = self.inputs.delay.value()
+        #procedure = RandomProcedure()
+        #procedure.seed = str(self.inputs.seed.text())
+        #procedure.iterations = self.inputs.iterations.value()
+        #procedure.delay = self.inputs.delay.value()
+
+        procedure = self.make_procedure()
 
         results = Results(procedure, filename)
 
