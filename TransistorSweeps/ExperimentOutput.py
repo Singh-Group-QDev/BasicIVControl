@@ -8,18 +8,18 @@ from time import sleep
 from pymeasure.log import console_log
 from pymeasure.display.windows import ManagedWindow
 from pymeasure.experiment import Results, unique_filename
-from TransistorSweeps.ProcedureTurnOn import ProcedureTurnOn
+from TransistorSweeps.ProcedureOutput import ProcedureOutput
 
-class ExperimentTurnOn(ManagedWindow):
+class ExperimentOutput(ManagedWindow):
     def __init__(self):
         super().__init__(
-            procedure_class = ProcedureTurnOn,
-            inputs=['max_voltage', 'min_voltage', 'voltage_step', 'compliance_current', 'delay', 'current_range', 'SD_Voltage'],
-            displays=['max_voltage', 'min_voltage', 'voltage_step', 'compliance_current', 'delay', 'current_range', 'SD_Voltage'],
-            x_axis='Gate Voltage (V)',
+            procedure_class = ProcedureOutput,
+            inputs=['max_voltage', 'min_voltage', 'voltage_step', 'compliance_current', 'delay', 'current_range', 'gate_voltage'],
+            displays=['max_voltage', 'min_voltage', 'voltage_step', 'compliance_current', 'delay', 'current_range', 'gate_voltage'],
+            x_axis='SD Voltage (V)',
             y_axis='SD Current (A)'
         )
-        self.setWindowTitle('Transistor Turn-On')
+        self.setWindowTitle('Transistor Output Characteristics')
  
     def queue(self):
 

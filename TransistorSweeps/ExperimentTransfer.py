@@ -14,12 +14,12 @@ class ExperimentTransfer(ManagedWindow):
     def __init__(self):
         super().__init__(
             procedure_class = ProcedureTransfer,
-            inputs=['max_voltage', 'min_voltage', 'voltage_step', 'compliance_current', 'delay', 'current_range', 'gate_voltage'],
-            displays=['max_voltage', 'min_voltage', 'voltage_step', 'compliance_current', 'delay', 'current_range', 'gate_voltage'],
-            x_axis='SD Voltage (V)',
+            inputs=['max_voltage', 'min_voltage', 'voltage_step', 'compliance_current', 'delay', 'current_range', 'SD_Voltage'],
+            displays=['max_voltage', 'min_voltage', 'voltage_step', 'compliance_current', 'delay', 'current_range', 'SD_Voltage'],
+            x_axis='Gate Voltage (V)',
             y_axis='SD Current (A)'
         )
-        self.setWindowTitle('Transistor Transfer')
+        self.setWindowTitle('Transistor Turn-On')
  
     def queue(self):
 
