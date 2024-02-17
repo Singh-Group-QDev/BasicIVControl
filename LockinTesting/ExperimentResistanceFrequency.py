@@ -6,23 +6,23 @@ from time import sleep
 from pymeasure.log import console_log
 from pymeasure.display.windows import ManagedWindow
 from pymeasure.experiment import Results, unique_filename
-from TemperatureSweeps.ProcedureLockinResistivity import ProcedureLockinResistivity
+from LockinTesting.ProcedureResistanceFrequency import ProcedureResistanceFrequency
 
-class ExperimentLockinResistivity(ManagedWindow):
+class ExperimentResistanceFrequency(ManagedWindow):
     def __init__(self):
         super().__init__(
-            procedure_class = ProcedureLockinResistivity,
-            inputs=['amplitude', 'resistance', 'frequency', 'tempmin'],
-            displays=['amplitude', 'resistance', 'frequency', 'tempmin'],
-            x_axis='Temperature (K)',
-            y_axis='Resistance (ohm)'
+            procedure_class = ProcedureResistanceFrequency,
+            inputs=['amplitude', 'resistance', 'frequencyMin', 'frequencyMax', 'frequencyStep'],
+            displays=['amplitude', 'resistance', 'frequencyMin', 'frequencyMax', 'frequencyStep'],
+            x_axis='Frequency (Hz)',
+            y_axis='Resistance from Lockin R (ohm)'
         )
         self.setWindowTitle('GUI Example')
  
     def queue(self):
 
         directory = "./"  # Change this to the desired directory
-        filename = unique_filename(directory, prefix='RT')
+        filename = unique_filename(directory, prefix='RF')
 
         procedure = self.make_procedure()
         results = Results(procedure, filename)

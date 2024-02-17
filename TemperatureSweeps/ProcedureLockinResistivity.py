@@ -14,86 +14,65 @@ from pymeasure.instruments.srs import SR830
 
 class ProcedureLockinResistivity(Procedure):
 
-    max_current = FloatParameter('Maximum Current', units='mA', default=11)
-    min_current = FloatParameter('Minimum Current', units='mA', default=-11)
-    current_step = FloatParameter('Current Step', units='mA', default=0.1)
-    delay = FloatParameter('Delay Time', units='ms', default=20)
-    voltage_range = FloatParameter('Voltage Range', units='V', default=10)
+    amplitude = FloatParameter('Input Signal Amplitude (RMS)', units='V', default=0.5)
+    resistance = FloatParameter('Reference Resistance', units='Mohm', default=0.967)
+    frequency = FloatParameter("Reference Frequency", units='Khz', default=1)
 
-    amplitude = FloatParameter('Input Signal Amplitude', units='V', default=1)
-    resistance = FloatParameter('Reference Resistance', units='ohm', default=1000)
-    frequency = FloatParameter("Reference Frequency", units='hz', default=1000)
+    tempmin = FloatParameter('Minimum Temperature', units='K', default = 1)
 
-    tempstep = FloatParameter('Tenoerature Step', units='mK', default=5)
-    tempmin = FloatParameter('Minimum Temperature', units='K', default = 0.010)
-    tempmax = FloatParameter('Maximum Temperature', units='K', default=2)
-
-    runs = IntegerParameter('Averaging Cycles', default=1000)
-
-    DATA_COLUMNS = ['Temperature (K)', 'Temperature STD (K)', 'Resistance (ohm)', 'Resistance STD (ohm)']
+    DATA_COLUMNS = ['Temperature (K)', 'Temperature STD (K)', 'Resistance (ohm)', 'Resistance STD (ohm)', 'Theta (degree)']
 
     def startup(self):
-        triton = Triton()
-        triton.set_ramp_on()
+        self.triton = Triton()
+        self.triton.connect(edsIP = "138.67.20.104")
         
-        self.wfg = Agilent33220A("USB0::2391::22279::MY53803283::0::INSTR")
-        self.wfg.amplitude_unit = 'VRRMS' # Change from Vpp
-        self.wfg.frequency = self.frequency
-        self.wfg.amplitude = self.amplitude
+        self.wfg = Agilent33220A("USB0::0x0957::0x5707::MY53803283::INSTR")
+        self.wfg.amplitude_unit = 'VRMS' # Change from Vpp
+        self.wfg.frequency = self.frequency * 1000
+        self.wfg.amplitude = self.amplitude/2
         self.wfg.output = 1
 
-        self.lockin = SR830(9)
+        self.lockin = SR830(8)
+        self.lockin.x # Test it here first, not strictly necessary
         log.debug("Setting up instruments")
-        self.meter = Keithley2400("GPIB::21")
-        self.meter.reset()
-        self.meter.measure_voltage()
-        self.meter.voltage_range = self.voltage_range
-        self.meter.voltage_nplc = 1  # Integration constant to Medium
-        self.meter.enable_source()
-
-        self.source = Keithley2400("GPIB::23")
-        self.source.reset()
-        self.source.apply_current()
-        self.source.source_current_range = self.max_current * 1e-3  # A
-        self.source.compliance_voltage = self.voltage_range
-        self.source.enable_source()
         sleep(2)
 
     def execute(self):
-        currents_up = np.arange(self.min_current, self.max_current, self.current_step)
-        currents_down = np.arange(self.max_current, self.min_current, -self.current_step)
-        currents = np.concatenate((currents_up, currents_down))  # Include the reverse
-        currents *= 1e-3  # to mA from A
-        steps = len(currents)
 
-        log.info("Starting to sweep through current")
-        for i, current in enumerate(currents):
-            log.info("Measuring current: %g mA" % current)
+        temperature = self.triton.get_temp_T8()
+        while(temperature > 0.01):
+            # Collect temperature over 40 seconds
+            temp_temperatures = []
+            temp_lockin = []
+            temp_phase = []
+            for i in range(5):
+                temp_temperatures.append(self.triton.get_temp_T8())
+                temp_lockin.append(np.sqrt(self.lockin.x**2+self.lockin.y**2))
+                temp_phase.append(np.arctan2(self.lockin.y,self.lockin.x)*180/np.pi)
+                sleep(60)
 
-            self.source.source_current = current
-            
-            # Or use self.source.ramp_to_current(current, delay=0.1)
-            sleep(self.delay * 1e-3)
-            
-            voltage = self.meter.voltage
-            
-            if abs(current) <= 1e-10:
-                resistance = np.nan
-            else:
-                resistance = voltage / current
+            temperature = np.mean(temp_temperatures)
+            temperature_std = np.std(temp_temperatures)
+            srsx = np.mean(temp_lockin)
+            srsx_std = np.std(temp_lockin)
+            phase = np.mean(temp_phase)
+
+            log.info("Temperature: {} +/- {}K, Lockin X: {} +/- {} mV".format(temperature, temperature_std, srsx*1000, srsx_std*1000))
+
             data = {
-                'Current (A)': current,
-                'Voltage (V)': voltage,
-                'Resistance (ohm)': resistance
+                'Temperature (K)': temperature,
+                'Temperature STD (K)': temperature_std, 
+                'Resistance (ohm)': self.resistance*(10**6)*(srsx/self.amplitude),
+                'Resistance STD (ohm)': self.resistance*(10**6)*(srsx_std/self.amplitude),
+                'Theta (degree)': phase
             }
             
             self.emit('results', data)
-            self.emit('progress', 100. * i / steps)
+            #self.emit('progress', 100. * i / steps)
             if self.should_stop():
                 log.warning("Catch stop command in procedure")
                 break
 
     def shutdown(self):
-        self.source.shutdown()
-        self.meter.shutdown()
+        self.wfg.shutdown()
         log.info("Finished")
