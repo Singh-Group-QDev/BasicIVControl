@@ -1,6 +1,6 @@
 import sys
 from pymeasure.display.Qt import QtWidgets
-from TransistorSweeps.ExperimentTransfer import ExperimentTurnOn
+from TransistorSweeps.ExperimentTransfer import ExperimentTransfer
 from TransistorSweeps.ExperimentOutput import ExperimentOutput
 
 app = QtWidgets.QApplication(sys.argv)
