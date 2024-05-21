@@ -18,7 +18,6 @@ from Helpers import waitForTempBelow
 
 class ProcedureIVB(Procedure):
     source = None
-    meter = None
     triton = None
     max_current = FloatParameter('Maximum Current', units='uA', default=50)
     min_current = FloatParameter('Minimum Current', units='uA', default=0)
@@ -39,19 +38,22 @@ class ProcedureIVB(Procedure):
         self.triton.goto_bfield(self.bfield*1e-3, wait=True, log=log)
         log.info('Set B field to {} mT. Measured B field: {} mT'.format(self.bfield, self.triton.get_Bfield()*10**3))
 
-        self.meter = Keithley2400("GPIB::23")
-        self.meter.reset()
-        self.meter.apply_current()
-        self.meter.source_current = 0
-        self.meter.measure_voltage()
-        self.meter.voltage_range = self.voltage_range * 1e-3
-        self.meter.compliance_voltage = self.voltage_range * 1e-3
-        self.meter.voltage_nplc = 1  # Integration constant to Medium
-        self.meter.enable_source()
+        # self.meter = Keithley2400("GPIB::23")
+        # self.meter.reset()
+        # self.meter.apply_current()
+        # self.meter.source_current = 0
+        # self.meter.measure_voltage()
+        # self.meter.voltage_range = self.voltage_range * 1e-3
+        # self.meter.compliance_voltage = self.voltage_range * 1e-3
+        # self.meter.voltage_nplc = 1  # Integration constant to Medium
+        # self.meter.enable_source()
         
-        self.source = Keithley2400("GPIB::21")
+        self.source = Keithley2400("GPIB::23")
         self.source.reset()
+        self.source.wires = 4
         self.source.apply_current()
+        self.source.measure_voltage()
+        self.source.voltage_range = self.voltage_range * 1e-3
         self.source.source_current_range = self.max_current * 1e-6  # A
         self.source.compliance_voltage = self.compliance_voltage_range
         self.source.enable_source()
@@ -69,7 +71,7 @@ class ProcedureIVB(Procedure):
         self.source.source_current = 0.0
         sleep(self.delay * 1e-3)
         for i in range(20):
-            temp_voltages.append(self.meter.voltage)
+            temp_voltages.append(self.source.voltage)
 
         zero_voltage = np.mean(temp_voltages)
         zero_voltageSTD = np.std(temp_voltages)
@@ -79,15 +81,13 @@ class ProcedureIVB(Procedure):
         for i, current in enumerate(currents):
             temp_voltages = []
             log.info("Measuring current: %g A" % current)
-            waitForTempBelow(self.triton, self.source, self.stay_below * 1e-3)
+            #waitForTempBelow(self.triton, self.source, self.stay_below * 1e-3)
             self.source.source_current = current
             
             # Or use self.source.ramp_to_current(current, delay=0.1)
             sleep(self.delay * 1e-3)
-            if(i <= 4):
-                sleep(10)
             for j in range(20):
-                temp_voltages.append(self.meter.voltage)
+                temp_voltages.append(self.source.voltage)
             voltage = np.mean(temp_voltages)
             voltage_std = np.std(temp_voltages)
 
@@ -108,8 +108,6 @@ class ProcedureIVB(Procedure):
     def shutdown(self):
         if(self.source is not None):
             self.source.shutdown()
-        if(self.meter is not None):
-            self.meter.shutdown()
         if(self.triton is not None):
             self.triton.disconnect()
         log.info("Finished")

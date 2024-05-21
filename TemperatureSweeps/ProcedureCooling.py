@@ -12,15 +12,14 @@ from pymeasure.instruments.oxfordinstruments import Triton
 from pymeasure.instruments.agilent import Agilent33220A
 from pymeasure.instruments.srs import SR830
 
-class ProcedureLockinResistivity(Procedure):
+class ProcedureCooling(Procedure):
 
-    amplitude = FloatParameter('Input Signal Amplitude (RMS)', units='V', default=0.5)
+    amplitude = FloatParameter('Input Signal Amplitude (RMS)', units='V', default=0.2)
     resistance = FloatParameter('Reference Resistance', units='Mohm', default=0.967)
-    frequency = FloatParameter("Reference Frequency", units='Khz', default=1)
+    frequency = FloatParameter("Reference Frequency", units='hz', default=7)
+    sensitivity = FloatParameter("Lock in Sensitivity", units='mV', default=10)
 
-    tempmin = FloatParameter('Minimum Temperature', units='K', default = 1)
-
-    DATA_COLUMNS = ['Temperature (K)', 'Temperature STD (K)', 'Resistance (ohm)', 'Resistance STD (ohm)', 'Theta (degree)']
+    DATA_COLUMNS = ['Temperature (K)', 'Temperature Cernox (K)', 'SRSX (V)', 'SRSX STD (V)', 'SRSY (V)', 'SRSY STD (V)', 'Preliminary Resistance (ohm)']
 
     def startup(self):
         self.triton = Triton()
@@ -34,37 +33,43 @@ class ProcedureLockinResistivity(Procedure):
 
         self.lockin = SR830(8)
         self.lockin.x # Test it here first, not strictly necessary
+        self.lockin.time_constant = 10/self.frequency #make sure 2f harmonic is attenuated
+        self.lockin.sensitivity = self.sensitivity*1e-3
+        
+
         log.debug("Setting up instruments")
         sleep(2)
 
     def execute(self):
-         # Wait to get stable data
+
         temperature = self.triton.get_temp_T8()
         while(temperature > 0.01):
             # Collect temperature over 40 seconds
-            temp_temperatures = []
-            temp_lockin = []
-            temp_phase = []
-            for i in range(5):
-                temp_temperatures.append(self.triton.get_temp_T8())
-                temp_lockin.append(np.sqrt(self.lockin.x**2+self.lockin.y**2))
-                temp_phase.append(np.arctan2(self.lockin.y,self.lockin.x)*180/np.pi)
-                sleep(60)
+            temp_lockinX = []
+            temp_lockinY = []
+            for i in range(20):
+                temp_lockinX.append(self.lockin.x)
+                temp_lockinY.append(self.lockin.y)
+                #temp_phase.append(np.arctan2(self.lockin.y,self.lockin.x)*180/np.pi)
+                sleep(0.01)
 
-            temperature = np.mean(temp_temperatures)
-            temperature_std = np.std(temp_temperatures)
-            srsx = np.mean(temp_lockin)
-            srsx_std = np.std(temp_lockin)
-            phase = np.mean(temp_phase)
+            temperature = self.triton.get_temp_T8()
+            temperatureC = self.triton.get_temp_T5()
+            srsx = np.mean(temp_lockinX)
+            srsx_std = np.std(temp_lockinX)
+            srsy = np.mean(temp_lockinY)
+            srsy_std = np.std(temp_lockinY)
 
-            log.info("Temperature: {} +/- {}K, Lockin X: {} +/- {} mV".format(temperature, temperature_std, srsx*1000, srsx_std*1000))
+            log.info("Temperature: {}K (cernox: {} K), Lockin X: {} +/- {} mV".format(temperature, temperatureC, srsx*1000, srsx_std*1000))
 
             data = {
                 'Temperature (K)': temperature,
-                'Temperature STD (K)': temperature_std, 
-                'Resistance (ohm)': self.resistance*(10**6)*(srsx/self.amplitude),
-                'Resistance STD (ohm)': self.resistance*(10**6)*(srsx_std/self.amplitude),
-                'Theta (degree)': phase
+                'Temperature Cernox (K)': temperatureC,
+                'SRSX (V)': srsx,
+                'SRSX STD (V)': srsx_std,
+                'SRSY (V)': srsy,
+                'SRSY STD (V)': srsy_std,
+                'Preliminary Resistance (ohm)': self.resistance*(10**6)*(srsx/self.amplitude)
             }
             
             self.emit('results', data)
@@ -72,7 +77,9 @@ class ProcedureLockinResistivity(Procedure):
             if self.should_stop():
                 log.warning("Catch stop command in procedure")
                 break
+            sleep(60)
 
     def shutdown(self):
         self.wfg.shutdown()
+        self.triton.disconnect()
         log.info("Finished")

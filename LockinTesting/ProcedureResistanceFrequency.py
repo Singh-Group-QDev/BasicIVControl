@@ -19,14 +19,14 @@ class ProcedureResistanceFrequency(Procedure):
     frequencyMax = FloatParameter('Max Frequency', units='hz', default=1000)
     frequencyStep = FloatParameter('Frequency Step', units='hz', default=10)
 
-    DATA_COLUMNS = ['Resistance from Lockin R (ohm)', 'Resistance STD (ohm)', 'Frequency (Hz)', 'Phase (degree)', 'Phase STD (degree)']
+    DATA_COLUMNS = ['Frequency (Hz)','Resistance from Lockin R (ohm)', 'Resistance STD (ohm)', 'Lock in X (V)','Lock in X STD (V)', 'Lock in Y (V)','Lock in Y STD (V)', 'Lock in Phase (degree)']
 
     def startup(self):
         
         self.wfg = Agilent33220A("USB0::0x0957::0x5707::MY53803283::INSTR")
         self.wfg.amplitude_unit = 'VRMS' # Change from Vpp
         self.wfg.frequency = self.frequencyMin
-        self.wfg.amplitude = self.amplitude / 2 #phantom keyshight factor of 2
+        self.wfg.amplitude = self.amplitude #phantom keyshight factor of 2
         self.wfg.output = 1
 
         self.lockin = SR830(8)
@@ -38,25 +38,34 @@ class ProcedureResistanceFrequency(Procedure):
         frequencies = np.arange(self.frequencyMin, self.frequencyMax, self.frequencyStep)
         for i, frequency in enumerate(frequencies):
             self.wfg.frequency = frequency
-            temp_lockin = []
-            temp_lockin_phase = []
+            new_const = 10/frequency
+            if(i==0 or self.lockin.time_constant != new_const):
+                log.info("changing time constant to {}".format(new_const))
+            self.lockin.time_constant = 10/frequency #pymeasure will round up to the next time constant
+            temp_lockin_x = []
+            temp_lockin_y = []
+            sleep(5*self.lockin.time_constant) #wait for data to stabilize
             for i in range(20):
-                temp_lockin.append(np.sqrt(self.lockin.x**2+self.lockin.y**2))
-                temp_lockin_phase.append(np.arctan2(self.lockin.y, self.lockin.x)*180/np.pi)
+                temp_lockin_x.append(self.lockin.x)
+                temp_lockin_y.append(self.lockin.y)
                 sleep(0.01)
 
-            srsR = np.mean(temp_lockin)
-            srsP = np.mean(temp_lockin_phase)
-            srsR_std = np.std(temp_lockin)
-            srsP_std = np.std(temp_lockin_phase)
+            srsX = np.mean(temp_lockin_x)
+            srsX_std = np.std(temp_lockin_x)
+            srsY = np.mean(temp_lockin_y)
+            srsY_std = np.std(temp_lockin_y)
+            srsP = np.arctan2(srsY,srsX)
+
 
             data = {
-                'Resistance from Lockin R (ohm)': self.resistance*(10**6)*(srsR/self.amplitude),
-                'Resistance STD (ohm)': self.resistance*(10**6)*(srsR_std/self.amplitude),
                 'Frequency (Hz)': frequency,
-                'Phase (degree)': srsP,
-                'Phase STD (degree)': srsP_std
-
+                'Resistance from Lockin R (ohm)': self.resistance*(10**6)*(srsX/self.amplitude),
+                'Resistance STD (ohm)': self.resistance*(10**6)*(srsX_std/self.amplitude),
+                'Lock in X (V)': srsX,
+                'Lock in X STD (V)': srsX_std, 
+                'Lock in Y (V)': srsY,
+                'Lock in Y STD (V)': srsY_std,
+                'Lock in Phase (degree)': srsP*180/np.pi
             }
             
             self.emit('results', data)

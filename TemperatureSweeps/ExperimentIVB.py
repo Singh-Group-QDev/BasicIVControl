@@ -23,7 +23,7 @@ class ExperimentIVB(ManagedWindow):
  
     def queue(self):
 
-        directory = "./"  # Change this to the desired directory
+        directory = "./Data/IVB"  # Change this to the desired directory
         filename = unique_filename(directory, prefix='IVB')
 
         procedure = self.make_procedure()

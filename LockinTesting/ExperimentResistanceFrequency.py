@@ -21,7 +21,7 @@ class ExperimentResistanceFrequency(ManagedWindow):
  
     def queue(self):
 
-        directory = "./"  # Change this to the desired directory
+        directory = "./Data/Lockin_Testing"  # Change this to the desired directory
         filename = unique_filename(directory, prefix='RF')
 
         procedure = self.make_procedure()
