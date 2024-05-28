@@ -49,6 +49,20 @@ class ProcedureOutput(Procedure):
         sleep(2)
 
     def execute(self):
+        #Zero the keithleys
+        zero_array1 = []
+        zero_array2 = []
+        self.source1.source_voltage = 0.0
+        self.source2.source_voltage = 0.0
+        for i in range(10):
+            zero_array1.append(self.source1.current)
+            zero_array2.append(self.source2.current)
+            sleep(100*1e-3)
+        GZero = np.mean(zero_array2)
+        SDZero = np.mean(zero_array1)
+        log.info('Gate zero: {} uA'.format(GZero*1e6))
+        log.info('Drain zero: {} uA'.format(SDZero*1e6))
+
         voltages = np.arange(self.min_voltage, self.max_voltage, self.voltage_step)
         steps = len(voltages)
 
@@ -60,8 +74,8 @@ class ProcedureOutput(Procedure):
             log.debug("Applying S/D voltage: %g V" % voltage)
             self.source1.source_voltage = voltage
             sleep(self.delay * 1e-3)
-            SDCurrent = self.source1.current
-            GSCurrent = self.source2.current
+            SDCurrent = self.source1.current-SDZero
+            GSCurrent = self.source2.current-GZero
             if abs(SDCurrent) <= 1e-10:
                 SDresistance = np.nan
             else:
