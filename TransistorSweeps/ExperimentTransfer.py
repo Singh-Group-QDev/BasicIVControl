@@ -24,7 +24,7 @@ class ExperimentTransfer(ManagedWindow):
     def queue(self):
 
         directory = "./"  # Change this to the desired directory
-        filename = unique_filename(directory, prefix='TTO')
+        filename = unique_filename(directory, prefix='TTC')
 
         procedure = self.make_procedure()
         results = Results(procedure, filename)
