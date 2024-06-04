@@ -8,12 +8,12 @@ from time import sleep
 from pymeasure.log import console_log
 from pymeasure.display.windows import ManagedWindow
 from pymeasure.experiment import Results, unique_filename
-from InstrumentControlExamples.Procedure4Probe import Procedure4Probe
+from InstrumentControlExamples.ProcedureFourProbe import ProcedureFourProbe
 
-class Experiment4Probe(ManagedWindow):
+class ExperimentFourProbe(ManagedWindow):
     def __init__(self):
         super().__init__(
-            procedure_class = Procedure4Probe,
+            procedure_class = ProcedureFourProbe,
             inputs=['min_voltage', 'max_voltage', 'voltage_step', 'delay', 'current_range', 'compliance_current_range'],
             displays=['min_voltage', 'max_voltage', 'voltage_step'],
             x_axis='Voltage (V)',

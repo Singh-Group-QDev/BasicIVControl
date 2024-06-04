@@ -16,7 +16,7 @@ from pymeasure.instruments.keithley import Keithley2000, Keithley2400
 from pymeasure.instruments.oxfordinstruments import Triton
 from Helpers import waitForTempBelow
 
-class Procedure4Probe(Procedure):
+class ProcedureFourProbe(Procedure):
     source = None
     triton = None
     max_voltage = FloatParameter('Maximum Voltage', units='V', default=1)
@@ -26,7 +26,7 @@ class Procedure4Probe(Procedure):
     current_range = FloatParameter('Current Range', units='uA', default=1)
     compliance_current_range = FloatParameter('Compliance Current Range', units='uA', default=10)
 
-    DATA_COLUMNS = ['Current (A)', 'Voltage (V)', 'Voltage STD (V)']
+    DATA_COLUMNS = ['Current (A)', 'Voltage (V)', 'Current STD (V)']
 
     def startup(self):
         log.debug("Setting up instruments")
