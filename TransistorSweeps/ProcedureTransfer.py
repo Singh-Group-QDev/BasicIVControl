@@ -22,14 +22,14 @@ class ProcedureTransfer(Procedure):
     compliance_current = FloatParameter('Gate Compliance Current', units='mA', default=1)
     delay = FloatParameter('Delay Time', units='ms', default=20)
     current_range = FloatParameter('Expected SD Current Range', units='mA', default=1)
-    SD_Voltage = FloatParameter('Source-Drain Voltage', units='V', default=1)
+    SD_Voltage = FloatParameter('Drain-Source Voltage', units='V', default=1)
 
-    DATA_COLUMNS = ['SD Current (A)', 'GS Current (A)','Gate Voltage (V)', 'Field Oxide Resistance (ohm)']
+    DATA_COLUMNS = ['DS Current (A)', 'GS Current (A)','Gate Voltage (V)', 'Field Oxide Resistance (ohm)']
 
     def startup(self):
         log.debug("Setting up instruments")
         # Gate Voltage
-        self.source1 = Keithley2400("GPIB::19")
+        self.source1 = Keithley2400("GPIB::21")
         self.source1.reset()
         self.source1.apply_voltage()
         self.source1.compliance_current = self.compliance_current * 1e-3
@@ -38,7 +38,7 @@ class ProcedureTransfer(Procedure):
         self.source1.enable_source()
 
         # SD Voltage
-        self.source2 = Keithley2400("GPIB::24")
+        self.source2 = Keithley2400("GPIB::23")
         self.source2.reset()
         self.source2.apply_voltage()
         self.source2.compliance_current = self.compliance_current * 1e-3
@@ -80,7 +80,7 @@ class ProcedureTransfer(Procedure):
             else:
                 resistance = voltage / GSCurrent
             data = {
-                'SD Current (A)': SDCurrent,
+                'DS Current (A)': SDCurrent,
                 'GS Current (A)': GSCurrent,
                 'Gate Voltage (V)': voltage,
                 'Field Oxide Resistance (ohm)': resistance

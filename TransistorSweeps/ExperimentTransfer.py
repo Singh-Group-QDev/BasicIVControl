@@ -17,7 +17,7 @@ class ExperimentTransfer(ManagedWindow):
             inputs=['max_voltage', 'min_voltage', 'voltage_step', 'compliance_current', 'delay', 'current_range', 'SD_Voltage'],
             displays=['max_voltage', 'min_voltage', 'voltage_step', 'compliance_current', 'delay', 'current_range', 'SD_Voltage'],
             x_axis='Gate Voltage (V)',
-            y_axis='SD Current (A)'
+            y_axis='DS Current (A)'
         )
         self.setWindowTitle('Transistor Turn-On')
  

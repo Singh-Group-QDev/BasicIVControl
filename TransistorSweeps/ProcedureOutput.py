@@ -16,8 +16,8 @@ from pymeasure.instruments.keithley import Keithley2000, Keithley2400
 
 class ProcedureOutput(Procedure):
 
-    max_voltage = FloatParameter('Maximum S/D Voltage', units='V', default=1)
-    min_voltage = FloatParameter('Minimum S/D Voltage', units='V', default=0)
+    max_voltage = FloatParameter('Maximum DS Voltage', units='V', default=1)
+    min_voltage = FloatParameter('Minimum DS Voltage', units='V', default=0)
     voltage_step = FloatParameter('S/D Voltage Step', units='V', default=0.01)
     compliance_current = FloatParameter('Compliance Current', units='mA', default=1)
     delay = FloatParameter('Delay Time', units='ms', default=20)
@@ -25,12 +25,12 @@ class ProcedureOutput(Procedure):
     gate_voltage = FloatParameter('Gate Voltage', units='V', default=0)
 
 
-    DATA_COLUMNS = ['SD Current (A)', 'GS Current (A)', 'SD Voltage (V)', 'Source-Drain Resistance (ohm)', 'Field Oxide Resistance (ohm)']
+    DATA_COLUMNS = ['DS Current (A)', 'GS Current (A)', 'DS Voltage (V)', 'Source-Drain Resistance (ohm)', 'Field Oxide Resistance (ohm)']
 
     def startup(self):
         log.debug("Setting up instruments")
         # SD Voltage
-        self.source1 = Keithley2400("GPIB::24")
+        self.source1 = Keithley2400("GPIB::23")
         self.source1.reset()
         self.source1.apply_voltage()
         self.source1.compliance_current = self.compliance_current * 1e-3
@@ -39,7 +39,7 @@ class ProcedureOutput(Procedure):
         self.source1.enable_source()
 
         # Gate Voltage
-        self.source2 = Keithley2400("GPIB::19")
+        self.source2 = Keithley2400("GPIB::21")
         self.source2.reset()
         self.source2.apply_voltage()
         self.source2.compliance_current = self.compliance_current * 1e-3
@@ -86,9 +86,9 @@ class ProcedureOutput(Procedure):
             else:
                 GSresistance = self.gate_voltage / GSCurrent
             data = {
-                'SD Current (A)': SDCurrent,
+                'DS Current (A)': SDCurrent,
                 'GS Current (A)': GSCurrent,
-                'SD Voltage (V)': voltage,
+                'DS Voltage (V)': voltage,
                 'Source-Drain Resistance (ohm)': SDresistance,
                 'Field Oxide Resistance (ohm)': GSresistance
             }

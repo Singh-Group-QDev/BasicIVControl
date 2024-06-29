@@ -1,3 +1,6 @@
 {
-    "python.REPL.enableREPLSmartSend": false
+    "python.REPL.enableREPLSmartSend": false,
+    "terminal.integrated.env.windows": {
+        "PYTHONPATH":"C:\\Users\\blloy\\Documents\\GitHub\\pymeasure"
+    }
 }

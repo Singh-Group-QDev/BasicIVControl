@@ -16,15 +16,15 @@ class ExperimentOutput(ManagedWindow):
             procedure_class = ProcedureOutput,
             inputs=['max_voltage', 'min_voltage', 'voltage_step', 'compliance_current', 'delay', 'current_range', 'gate_voltage'],
             displays=['max_voltage', 'min_voltage', 'voltage_step', 'compliance_current', 'delay', 'current_range', 'gate_voltage'],
-            x_axis='SD Voltage (V)',
-            y_axis='SD Current (A)'
+            x_axis='DS Voltage (V)',
+            y_axis='DS Current (A)'
         )
         self.setWindowTitle('Transistor Output Characteristics')
  
     def queue(self):
 
         directory = "./"  # Change this to the desired directory
-        filename = unique_filename(directory, prefix='TTO')
+        filename = unique_filename(directory, prefix='TOC')
 
         procedure = self.make_procedure()
         results = Results(procedure, filename)
