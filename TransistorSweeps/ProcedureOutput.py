@@ -73,6 +73,8 @@ class ProcedureOutput(Procedure):
         for i, voltage in enumerate(voltages):
             log.debug("Applying S/D voltage: %g V" % voltage)
             self.source1.source_voltage = voltage
+            if i==0:
+                sleep(5)
             sleep(self.delay * 1e-3)
             SDCurrent = self.source1.current-SDZero
             GSCurrent = self.source2.current-GZero

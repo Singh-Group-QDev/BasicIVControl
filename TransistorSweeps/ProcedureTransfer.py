@@ -72,6 +72,8 @@ class ProcedureTransfer(Procedure):
         for i, voltage in enumerate(voltages):
             log.debug("Applying gate voltage: %g V" % voltage)
             self.source1.source_voltage = voltage
+            if i==0:
+                sleep(5)
             sleep(self.delay * 1e-3)
             SDCurrent = self.source2.current-SDZero
             GSCurrent = self.source1.current-GZero
