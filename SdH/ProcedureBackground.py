@@ -17,7 +17,7 @@ from pymeasure.instruments.srs import SR830
 from pymeasure.instruments.agilent import Agilent33220A
 from pymeasure.instruments.oxfordinstruments import Triton
 
-class ProcedureOscillate(Procedure):
+class ProcedureBackground(Procedure):
     # awg = None
     # lockin = None
     source = None
@@ -40,10 +40,8 @@ class ProcedureOscillate(Procedure):
     source_compliance = FloatParameter('Source Compliance Voltage', units = 'V', default = 5)
     gate_compliance = FloatParameter('Gate Compliance Current', units = 'mA', default = 1)
 
-    min_B = FloatParameter('Minimum Magnetic Field', units = 'T', default = 0)
-    max_B = FloatParameter('Maximum Magnetic Field', units = 'T', default = 2)
-    B_sweep = FloatParameter('Magnetic Field Sweep Rate', units = 'T/min', default = 0.02)
-
+    min_B = FloatParameter('Magnetic Field', units = 'T', default = 0)
+    duration = FloatParameter('Duration', units = 's', default = 3600)
     def startup(self):
         self.triton = Triton()
         self.triton.connect(edsIP = "138.67.20.104")
@@ -84,51 +82,51 @@ class ProcedureOscillate(Procedure):
         else:
             currents = np.arange(self.min_current*1e-6,self.max_current*1e-6,self.current_step*1e-6)
 
-      
+        zero_voltages = []
+        self.source.source_current = 0
+        sleep(self.delay*1e-3)
+        for i in range(20):
+            zero_voltages.append(self.source.voltage)
+            sleep(20*1e-3)
+        zero_voltage = np.mean(zero_voltages)
+        zero_voltage_STD = np.std(zero_voltage)
+        log.info('Voltage at zero current: {} +/- {}'.format(zero_voltage, zero_voltage_STD))
+        
         self.triton.goto_bfield(self.min_B, wait = True, log = log)
-        self.triton.goto_bfield(self.max_B, sweeprate = self.B_sweep, wait = False, log = log)
+        #self.triton.goto_bfield(self.max_B, sweeprate = self.B_sweep, wait = False, log = log)
+        k = 0
         zero_time = time()
-        while(not self.triton.is_idle()):
-
-            zero_voltages = []
-            self.source.source_current = 0
-            sleep(self.delay*1e-3)
-            for i in range(10):
-                zero_voltages.append(self.source.voltage)
-                sleep(20*1e-3)
-            zero_voltage = np.mean(zero_voltages)
-            zero_voltage_STD = np.std(zero_voltage)
-            log.info('Voltage at zero current: {} +/- {}'.format(zero_voltage, zero_voltage_STD))
-
+        while(time()-zero_time < self.duration):
             self.gate.source_voltage = self.gate_voltage
             bfield = self.triton.get_Bfield()
             actual_voltages = []
             actual_voltages_std = []
             for i, current in enumerate(currents):
-                #voltages = []
+                voltages = []
                 self.source.source_current = current
                 sleep(self.delay*1e-3)
                 #for j in range(10):
                 #    voltages.append(self.source.voltage - zero_voltage)
-                voltage = self.source.voltage - zero_voltage#np.mean(voltages)
+                voltage = self.source.voltage #np.mean(voltages)
                 voltage_std = 0#np.std(voltages)
                 actual_voltages.append(voltage)
                 actual_voltages_std.append(voltage_std)
 
-            fit, c = np.polyfit(np.asarray(currents), np.asarray(actual_voltages), 1, cov='unscaled', w=np.full(len(currents),np.sqrt(len(currents))))#, w=1/np.asarray(actual_voltages_std))
+            fit, c = np.polyfit(np.asarray(currents), np.asarray(actual_voltages), 1, cov='unscaled', w=np.sqrt(len(currents)))#, w=1/np.asarray(actual_voltages_std))
             error = np.sqrt(np.diag(c))
-
-            data = {
-                'Time (s)': time() - zero_time,
-                'Field (T)': bfield,
-                'Resistance (ohm)': fit[0],
-                'Resistance STD (ohm)': error[0],
-                'Temperature 5 (K)': self.triton.get_temp_T5(),
-                'Temperature 8 (K)': self.triton.get_temp_T8()
-            }
-
-            self.emit('results', data)
-            self.emit('progress', 100. * (bfield-self.min_B) / (self.max_B-self.min_B))
+            if(k > 5):
+                data = {
+                    'Time (s)': time()-zero_time,
+                    'Field (T)': bfield,
+                    'Resistance (ohm)': fit[0],
+                    'Resistance STD (ohm)': error[0],
+                    'Temperature 5 (K)': self.triton.get_temp_T5(),
+                    'Temperature 8 (K)': self.triton.get_temp_T8()
+                }
+                self.emit('results', data)
+            k += 1
+            
+            self.emit('progress', 100. * (time()-zero_time)/self.duration)
             if self.should_stop():
                 log.warning("Catch stop command in procedure")
                 break

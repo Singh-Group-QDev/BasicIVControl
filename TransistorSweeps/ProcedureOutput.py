@@ -30,7 +30,7 @@ class ProcedureOutput(Procedure):
     def startup(self):
         log.debug("Setting up instruments")
         # SD Voltage
-        self.source1 = Keithley2400("GPIB::23")
+        self.source1 = Keithley2400("GPIB::24")
         self.source1.reset()
         self.source1.apply_voltage()
         self.source1.compliance_current = self.compliance_current * 1e-3
@@ -39,7 +39,7 @@ class ProcedureOutput(Procedure):
         self.source1.enable_source()
 
         # Gate Voltage
-        self.source2 = Keithley2400("GPIB::21")
+        self.source2 = Keithley2400("GPIB::19")
         self.source2.reset()
         self.source2.apply_voltage()
         self.source2.compliance_current = self.compliance_current * 1e-3

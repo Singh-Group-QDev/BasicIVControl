@@ -13,10 +13,10 @@ class ExperimentOscillate(ManagedWindow):
     def __init__(self):
         super().__init__(
             procedure_class = ProcedureOscillate,
-            inputs=['min_current', 'max_current', 'current_step', 'delay', 'source_compliance', 'voltage_range', 'gate_compliance', 'hysteresis', 'min_B', 'max_B', 'B_sweep'],
-            displays=['min_current', 'max_current', 'current_step', 'delay', 'voltage_range', 'hysteresis','min_B', 'max_B', 'B_sweep'],
-            x_axis='Voltage (V)',
-            y_axis='Current (A)'
+            inputs=['gate_voltage','min_current', 'max_current', 'current_step', 'delay', 'source_compliance', 'voltage_range', 'gate_compliance', 'hysteresis', 'min_B', 'max_B', 'B_sweep', 'four_wire'],
+            displays=['gate_voltage', 'min_current', 'max_current', 'current_step', 'delay', 'voltage_range', 'hysteresis','min_B', 'max_B', 'B_sweep'],
+            x_axis='Field (T)',
+            y_axis='Resistance (ohm)'
         )
         self.setWindowTitle('Transistor 4-Wire IV with B Field')
  
