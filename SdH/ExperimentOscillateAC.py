@@ -6,24 +6,24 @@ from time import sleep
 from pymeasure.log import console_log
 from pymeasure.display.windows import ManagedWindow
 from pymeasure.experiment import Results, unique_filename
-from SdH.ProcedureOscillate import ProcedureOscillate
+from SdH.ProcedureOscillateAC import ProcedureOscillateAC
 
 
-class ExperimentOscillate(ManagedWindow):
+class ExperimentOscillateAC(ManagedWindow):
     def __init__(self):
         super().__init__(
-            procedure_class = ProcedureOscillate,
-            inputs=['gate_voltage','min_current', 'max_current', 'current_step', 'delay', 'source_compliance', 'voltage_range', 'gate_compliance', 'hysteresis', 'min_B', 'max_B', 'B_sweep', 'four_wire', 'rxy'],
-            displays=['gate_voltage', 'min_current', 'max_current', 'current_step', 'delay', 'voltage_range', 'hysteresis','min_B', 'max_B', 'B_sweep', 'rxy'],
+            procedure_class = ProcedureOscillateAC,
+            inputs=['gate_voltage','voltage_offset', 'voltage_amplitude', 'frequency', 'delay', 'voltage_range', 'gate_compliance', 'min_B', 'max_B', 'B_sweep', 'resistance'],
+            displays=['gate_voltage','voltage_offset', 'voltage_amplitude', 'frequency', 'min_B', 'max_B', 'B_sweep', 'resistance'],
             x_axis='Field (T)',
             y_axis='Resistance (ohm)'
         )
-        self.setWindowTitle('Transistor 4-Wire IV with B Field')
+        self.setWindowTitle('Transistor AC 4-Wire IV with B Field')
  
     def queue(self):
 
         directory = "./Data"  # Change this to the desired directory
-        filename = unique_filename(directory, prefix='OSC')
+        filename = unique_filename(directory, prefix='OSC_AC')
 
         procedure = self.make_procedure()
         results = Results(procedure, filename)
