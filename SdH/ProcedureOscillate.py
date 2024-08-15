@@ -111,7 +111,6 @@ class ProcedureOscillate(Procedure):
                     zero_voltages_xy.append(self.nvm.voltage)
                 else:
                     zero_voltages_xy.append(0)
-                
 
             zero_voltage = np.mean(zero_voltages)
             zero_voltage_STD = np.std(zero_voltage)

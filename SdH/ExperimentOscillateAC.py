@@ -13,7 +13,7 @@ class ExperimentOscillateAC(ManagedWindow):
     def __init__(self):
         super().__init__(
             procedure_class = ProcedureOscillateAC,
-            inputs=['gate_voltage','voltage_offset', 'voltage_amplitude', 'frequency', 'delay', 'voltage_range', 'gate_compliance', 'min_B', 'max_B', 'B_sweep', 'resistance'],
+            inputs=['gate_voltage','voltage_offset', 'voltage_amplitude', 'frequency', 'delay', 'voltage_range', 'voltage_range_2', 'gate_compliance', 'min_B', 'max_B', 'B_sweep', 'resistance'],
             displays=['gate_voltage','voltage_offset', 'voltage_amplitude', 'frequency', 'min_B', 'max_B', 'B_sweep', 'resistance'],
             x_axis='Field (T)',
             y_axis='Resistance (ohm)'
