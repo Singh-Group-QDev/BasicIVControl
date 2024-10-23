@@ -12,21 +12,24 @@ from pymeasure.instruments.oxfordinstruments import Triton
 from pymeasure.instruments.agilent import Agilent33220A
 from pymeasure.instruments.srs import SR830
 
-class ProcedureCooling(Procedure):
+class ProcedureACSweep(Procedure):
 
     amplitude = FloatParameter('Input Signal Amplitude (RMS)', units='V', default=0.25)
     resistance = FloatParameter('Reference Resistance', units='Mohm', default=0.967)
     frequency = FloatParameter("Reference Frequency", units='hz', default=17)
     sensitivity = FloatParameter("Lock in Sensitivity", units='mV', default=2)
+    set_temp = FloatParameter('Set Temperature', units='K', default=1)
+    ramp_rate = FloatParameter('Ramp Rate', units='mK/min', default = 5)
+    heater_range = FloatParameter('Heater Range', units='mW', default = 10)
 
     DATA_COLUMNS = ['SRSX (V)', 'SRSX STD (V)', 'SRSY (V)', 'SRSY STD (V)', 'Preliminary Resistance (ohm)', 'Temperature (K)', 'Temperature Cernox (K)']
 
     def startup(self):
-        self.nvm = Keithley2182(15)
-        self.nvm.reset()
-        self.nvm.ch_1.setup_voltage()
-        self.nvm.active_channel = 1
-        self.nvm.sample_continuously()
+        # self.nvm = Keithley2182(15)
+        # self.nvm.reset()
+        # self.nvm.ch_1.setup_voltage()
+        # self.nvm.active_channel = 1
+        # self.nvm.sample_continuously()
         self.triton = Triton()
         self.triton.connect(edsIP = "138.67.20.104")
         
@@ -45,17 +48,18 @@ class ProcedureCooling(Procedure):
 
     def execute(self):
         self.lockin.set_scaling('X',0)
-        for i in range(int(10*80/self.frequency)):
-                sleep(100e-3)
-                self.lockin.x
-        self.lockin.auto_offset('X')
+        # for i in range(int(10*80/self.frequency)):
+        #         sleep(100e-3)
+        #         self.lockin.x
+        # self.lockin.auto_offset('X')
         scaled = self.lockin.output_conversion('X')
         temperature = self.triton.get_temp_T8()
-        while(temperature > 0.045):
+        self.triton.goto_temp(self.set_temp,self.ramp_rate*1e-3,self.heater_range)
+        while(not self.triton.isWithin(temperature, self.set_temp, .001)):
             # Collect temperature over 40 seconds
             temp_lockinX = []
             temp_lockinY = []
-            for i in range(20):
+            for i in range(50):
                 temp_lockinX.append(scaled(self.lockin.x))
                 temp_lockinY.append(self.lockin.y)
                 #temp_phase.append(np.arctan2(self.lockin.y,self.lockin.x)*180/np.pi)
@@ -67,7 +71,6 @@ class ProcedureCooling(Procedure):
             srsx_std = np.std(temp_lockinX)
             srsy = np.mean(temp_lockinY)
             srsy_std = np.std(temp_lockinY)
-            # nvmV, nvmSTD = self.measure()
             log.info("Temperature: {}K (cernox: {} K), Lockin X: {} +/- {} mV".format(temperature, temperatureC, srsx*1000, srsx_std*1000))
 
             data = {
@@ -76,8 +79,6 @@ class ProcedureCooling(Procedure):
                 'SRSY (V)': srsy,
                 'SRSY STD (V)': srsy_std,
                 'Preliminary Resistance (ohm)': self.resistance*(10**6)*(srsx/self.amplitude),
-                # 'NVM (V)': nvmV,
-                # 'NVM STD (V)': nvmSTD,
                 'Temperature (K)': temperature,
                 'Temperature Cernox (K)': temperatureC
             }
@@ -87,7 +88,7 @@ class ProcedureCooling(Procedure):
             if self.should_stop():
                 log.warning("Catch stop command in procedure")
                 break
-            sleep(30)
+            sleep(90)
 
     def measure(self):
         sleep(100e-3)
@@ -99,5 +100,6 @@ class ProcedureCooling(Procedure):
 
     def shutdown(self):
         self.wfg.shutdown()
+        self.triton.goto_base()
         self.triton.disconnect()
         log.info("Finished")

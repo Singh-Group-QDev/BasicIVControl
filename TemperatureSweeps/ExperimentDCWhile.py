@@ -14,16 +14,16 @@ class ExperimentDCWhile(ManagedWindow):
     def __init__(self):
         super().__init__(
             procedure_class = ProcedureDCWhile,
-            inputs=['min_voltage', 'max_voltage', 'voltage_step', 'delay', 'current_range', 'compliance_current_range'],
-            displays=['min_voltage', 'max_voltage', 'voltage_step'],
-            x_axis='Voltage (V)',
-            y_axis='Current (A)'
+            inputs=['voltage_range', 'current', 'delay', 'compliance_voltage'],
+            displays=['voltage_range', 'current', 'delay'],
+            x_axis='Temperature 8 (K)',
+            y_axis='Resistance (ohm)'
         )
-        self.setWindowTitle('DC 4 Probe While Cooling')
+        self.setWindowTitle('DC 2 Probe While Cooling')
  
     def queue(self):
 
-        directory = "./Data/CISS"  # Change this to the desired directory
+        directory = "./Data"  # Change this to the desired directory
         filename = unique_filename(directory, prefix='DCW')
 
         procedure = self.make_procedure()

@@ -14,83 +14,73 @@ from pymeasure.experiment import Procedure, Results
 from pymeasure.experiment import IntegerParameter, FloatParameter, Parameter
 from pymeasure.instruments.keithley import Keithley2000, Keithley2400
 from pymeasure.instruments.lakeshore import LakeShore331
+from pymeasure.instruments.oxfordinstruments import Triton
 
 
 class ProcedureDCWhile(Procedure):
     source = None
     lakeshore = None
-    max_voltage = FloatParameter('Maximum Voltage', units='V', default=0.2)
-    min_voltage = FloatParameter('Minimum Voltage', units='V', default=-0.2)
-    voltage_step = FloatParameter('Voltage Step', units='V', default=0.05)
-    delay = FloatParameter('Delay Time', units='ms', default=20)
-    current_range = FloatParameter('Current Range', units='uA', default=1)
-    compliance_current_range = FloatParameter('Compliance Current Range', units='uA', default=10)
+    voltage_range = FloatParameter('Voltage Range', units='mV', default=20)
+    current = FloatParameter('Source Current', units='uA', default=.25)
+    delay = FloatParameter('Delay Time', units='ms', default=200)
+    compliance_voltage = FloatParameter('Compliance Voltage', units='mV', default=500)
     #charge_delay = FloatParameter('Charge Delay', units='s',default=1)
 
-    DATA_COLUMNS = ['Temperature (K)', 'Voltage (V)', 'Current (A)', 'Current STD (A)']
+    DATA_COLUMNS = ['Voltage (V)', 'Voltage STD (V)', 'Resistance (ohm)','Resistance STD (ohm)', 'Temperature 5 (K)','Temperature 8 (K)']
 
     def startup(self):
         log.debug("Setting up instruments")
 
-        self.lakeshore = LakeShore331(12)
+        #self.lakeshore = LakeShore331(12)
+        self.triton = Triton()
+        self.triton.connect(edsIP = "138.67.20.104")
 
         self.source = Keithley2400("GPIB::24")
         self.source.reset()
         self.source.wires = 2
-        self.source.measure_concurent_functions = True
-        self.source.apply_voltage()
-        self.source.measure_current()
-        self.source.source_voltage_range = self.max_voltage
-        self.source.current_range = self.current_range * 1e-6  # A
-        self.source.compliance_current = self.compliance_current_range
+        self.source.apply_current()
         self.source.measure_voltage()
-        self.source.voltage_range = self.max_voltage
+        self.source.compliance_voltage = self.compliance_voltage*1e-3
+        self.source.voltage_range = self.voltage_range*1e-3
         self.source.enable_source()
         sleep(2)
 
     def execute(self):
-        #voltage_up1 = np.arange(0, self.max_voltage, self.voltage_step)
-        #voltage_down = np.arange(self.max_voltage,self.min_voltage,-self.voltage_step)
-        #voltage_up2 = np.arange(self.min_voltage,0,self.voltage_step)
-        voltages = np.arange(self.min_voltage,self.max_voltage,self.voltage_step)
-        #currents_down = np.arange(self.max_current, self.min_current, -self.current_step)
-        #currents = np.concatenate((currents_up, currents_down))  # Include the reverse
-        #voltages = np.concatenate((voltage_up1,voltage_down,voltage_up2))
-        steps = len(voltages)
-        while True:
-            temp_currents = []
-            self.source.source_voltage = 0.0
+        temperature = self.triton.get_temp_T8();
+        while(temperature<1):
+            temp_voltages = []
+            self.source.source_current = 0.0
             sleep(self.delay * 1e-3)
             for i in range(100):
-                temp_currents.append(self.source.current)
+                temp_voltages.append(self.source.voltage)
                 sleep(1e-3)
             sleep(1)
-            zero_current = np.mean(temp_currents)
-            zero_currentSTD = np.std(temp_currents)
-            log.info('Current at zero voltage: {} +/- {}'.format(zero_current, zero_currentSTD))
-            log.info("Starting to sweep through voltages")
-
-            for i, voltage in enumerate(voltages):
-                temp_currents = []
-                self.source.source_voltage = voltage           
-                # Or use self.source.ramp_to_current(current, delay=0.1)
-                sleep(self.delay * 1e-3)
-                for j in range(20):
-                    temp_currents.append(self.source.current-zero_current)
-                data = {
-                    'Temperature (K)': self.lakeshore.input_A.kelvin,
-                    'Voltage (V)': voltage,
-                    'Current (A)': np.mean(temp_currents),
-                    'Current STD (A)': np.std(temp_currents)
-                }
-            
-                self.emit('results', data)
-                self.emit('progress', 100. * i / steps)
-                if self.should_stop():
-                    log.warning("Catch stop command in procedure")
-                    break
-                self.source.source_voltage = 0.0
-            sleep(30)
+            zero_voltage = np.mean(temp_voltages)
+            zero_voltageSTD = np.std(temp_voltages)
+            log.info('Voltage at zero current: {} +/- {} mV'.format(zero_voltage*1e3, zero_voltageSTD*1e3))
+            temp_voltages=[]
+            self.source.source_current = self.current*1e-6           
+            sleep(self.delay * 1e-3)
+            for j in range(20):
+                temp_voltages.append(self.source.voltage-zero_voltage)
+                sleep(100e-3)
+            self.source.source_current = 0.0
+            data = {
+                #'Temperature (K)': self.lakeshore.input_A.kelvin,
+                'Voltage (V)': np.mean(temp_voltages),
+                'Voltage STD (V)': np.std(temp_voltages),
+                'Resistance (ohm)': np.mean(temp_voltages)/(self.current*1e-6),
+                'Resistance STD (ohm)': np.std(temp_voltages)/(self.current*1e-6),
+                'Temperature 5 (K)': self.triton.get_temp_T5(),
+                'Temperature 8 (K)': self.triton.get_temp_T8()
+            }
+            temperature = self.triton.get_temp_T8()
+            self.emit('results', data)
+            self.emit('progress', 0)
+            if self.should_stop():
+                log.warning("Catch stop command in procedure")
+                break
+            sleep(70)
 
     def shutdown(self):
         if(self.source is not None):
