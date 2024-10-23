@@ -104,16 +104,13 @@ class ProcedureACDC(Procedure):
             Bfields = np.concatenate((B_up1,B_down))
         
         self.gate.source_voltage = self.gate_voltage
-        self.triton.goto_bfield(Bfields[0], wait = True, log = log)
+        self.triton.goto_bfield(Bfields[0], sweeprate = self.sweep_rate if self.B_sweep else None, wait = True, log = log)
         zero_time = time()
 
         for B in Bfields:
             self.triton.goto_bfield(B, sweeprate = (self.sweep_rate if self.B_sweep else None), wait = True, log = log)
             bfield = self.triton.get_Bfield()
 
-            v_h_p, v_h_p_std = self.measure(self.current*1e-6)
-            v_h_n, v_h_n_std = self.measure(-self.current*1e-6)
-            self.source.source_current = 0
             if(self.Rxx):
                 self.awg.output = 1
                 for i in range(int(10*160/self.frequency)):
@@ -133,6 +130,9 @@ class ProcedureACDC(Procedure):
                 lockX = np.nan
                 lockY = np.nan
 
+            v_h_p, v_h_p_std = self.measure(self.current*1e-6,128)
+            v_h_n, v_h_n_std = self.measure(-self.current*1e-6,150)
+            self.source.source_current = 0
 
             log.info("vhp:{}, vhn:{}".format(v_h_p, v_h_n))
 
@@ -161,12 +161,12 @@ class ProcedureACDC(Procedure):
                 log.warning("Catch stop command in procedure")
                 break
     
-    def measure(self, current):
+    def measure(self, current, points):
         self.source.source_current = current
         sleep(100e-3)
-        self.nvm.config_buffer(points=64)
+        self.nvm.config_buffer(points=points)
         self.nvm.start_buffer()
-        self.nvm.wait_for_buffer()
+        self.nvm.wait_for_buffer(timeout = 2*points/3)
         actual_voltages_xy = self.nvm.buffer_data[-20:]
 
         return  np.mean(actual_voltages_xy), np.std(actual_voltages_xy)
