@@ -2,7 +2,7 @@ import logging
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
 
-from time import sleep
+from time import sleep, time
 import numpy as np
 from pymeasure.log import console_log
 from pymeasure.experiment import Procedure, Results
@@ -17,12 +17,12 @@ class ProcedureACSweep(Procedure):
     amplitude = FloatParameter('Input Signal Amplitude (RMS)', units='V', default=0.25)
     resistance = FloatParameter('Reference Resistance', units='Mohm', default=0.967)
     frequency = FloatParameter("Reference Frequency", units='hz', default=17)
-    sensitivity = FloatParameter("Lock in Sensitivity", units='mV', default=2)
-    set_temp = FloatParameter('Set Temperature', units='K', default=1)
+    sensitivity = FloatParameter("Lock in Sensitivity", units='mV', default=0.2)
+    set_temp = FloatParameter('Set Temperature', units='K', default=0.05)
     ramp_rate = FloatParameter('Ramp Rate', units='mK/min', default = 5)
     heater_range = FloatParameter('Heater Range', units='mW', default = 10)
 
-    DATA_COLUMNS = ['SRSX (V)', 'SRSX STD (V)', 'SRSY (V)', 'SRSY STD (V)', 'Preliminary Resistance (ohm)', 'Temperature (K)', 'Temperature Cernox (K)']
+    DATA_COLUMNS = ['Time (s)', 'SRSX (V)', 'SRSX STD (V)', 'SRSY (V)', 'SRSY STD (V)', 'Preliminary Resistance (ohm)', 'Temperature (K)', 'Temperature Cernox (K)']
 
     def startup(self):
         # self.nvm = Keithley2182(15)
@@ -48,13 +48,14 @@ class ProcedureACSweep(Procedure):
 
     def execute(self):
         self.lockin.set_scaling('X',0)
-        # for i in range(int(10*80/self.frequency)):
-        #         sleep(100e-3)
-        #         self.lockin.x
-        # self.lockin.auto_offset('X')
+        for i in range(int(10*80/self.frequency)):
+                sleep(100e-3)
+                self.lockin.x
+        self.lockin.auto_offset('X')
         scaled = self.lockin.output_conversion('X')
         temperature = self.triton.get_temp_T8()
         self.triton.goto_temp(self.set_temp,self.ramp_rate*1e-3,self.heater_range)
+        t0 = time()
         while(not self.triton.isWithin(temperature, self.set_temp, .001)):
             # Collect temperature over 40 seconds
             temp_lockinX = []
@@ -74,6 +75,7 @@ class ProcedureACSweep(Procedure):
             log.info("Temperature: {}K (cernox: {} K), Lockin X: {} +/- {} mV".format(temperature, temperatureC, srsx*1000, srsx_std*1000))
 
             data = {
+                'Time (s)': time()-t0,
                 'SRSX (V)': srsx,
                 'SRSX STD (V)': srsx_std,
                 'SRSY (V)': srsy,
@@ -88,15 +90,7 @@ class ProcedureACSweep(Procedure):
             if self.should_stop():
                 log.warning("Catch stop command in procedure")
                 break
-            sleep(90)
-
-    def measure(self):
-        sleep(100e-3)
-        self.nvm.config_buffer(points=128)
-        self.nvm.start_buffer()
-        self.nvm.wait_for_buffer()
-        actual_voltages_xx = self.nvm.buffer_data
-        return np.mean(actual_voltages_xx), np.std(actual_voltages_xx)
+            sleep(60)
 
     def shutdown(self):
         self.wfg.shutdown()

@@ -1,12 +1,11 @@
 import logging
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
-
-from time import sleep
+from time import sleep, time, strftime, localtime
 import numpy as np
 from pymeasure.log import console_log
 from pymeasure.experiment import Procedure, Results
-from pymeasure.experiment import IntegerParameter, FloatParameter, Parameter
+from pymeasure.experiment import IntegerParameter, FloatParameter, Parameter, Metadata
 from pymeasure.instruments.keithley import Keithley2000, Keithley2400, Keithley2182
 from pymeasure.instruments.oxfordinstruments import Triton
 from pymeasure.instruments.agilent import Agilent33220A
@@ -14,19 +13,17 @@ from pymeasure.instruments.srs import SR830
 
 class ProcedureCooling(Procedure):
 
-    amplitude = FloatParameter('Input Signal Amplitude (RMS)', units='V', default=0.25)
-    resistance = FloatParameter('Reference Resistance', units='Mohm', default=0.967)
-    frequency = FloatParameter("Reference Frequency", units='hz', default=17)
-    sensitivity = FloatParameter("Lock in Sensitivity", units='mV', default=2)
+    amplitude = FloatParameter('Input Signal Amplitude (RMS)', units='V', default=3)
+    resistance = FloatParameter('Reference Resistance', units='Mohm', default=10)
+    frequency = FloatParameter("Reference Frequency", units='hz', default=13)
+    sensitivity = FloatParameter("Lock in Sensitivity", units='mV', default=0.05)
 
-    DATA_COLUMNS = ['SRSX (V)', 'SRSX STD (V)', 'SRSY (V)', 'SRSY STD (V)', 'Preliminary Resistance (ohm)', 'Temperature (K)', 'Temperature Cernox (K)']
+    start = Metadata("Start Time", default = '')
+
+    DATA_COLUMNS = ['Time (s)', 'SRSX (V)', 'SRSX STD (V)', 'SRSY (V)', 'SRSY STD (V)', 'Preliminary Resistance (ohm)', 'Temperature (K)', 'Temperature Cernox (K)']
 
     def startup(self):
-        self.nvm = Keithley2182(15)
-        self.nvm.reset()
-        self.nvm.ch_1.setup_voltage()
-        self.nvm.active_channel = 1
-        self.nvm.sample_continuously()
+        self.start = strftime("%Y-%m-%d %H:%M:%S", localtime())
         self.triton = Triton()
         self.triton.connect(edsIP = "138.67.20.104")
         
@@ -51,7 +48,8 @@ class ProcedureCooling(Procedure):
         self.lockin.auto_offset('X')
         scaled = self.lockin.output_conversion('X')
         temperature = self.triton.get_temp_T8()
-        while(temperature > 0.045):
+        zeroTime = time()
+        while(temperature > 0.02):
             # Collect temperature over 40 seconds
             temp_lockinX = []
             temp_lockinY = []
@@ -71,6 +69,7 @@ class ProcedureCooling(Procedure):
             log.info("Temperature: {}K (cernox: {} K), Lockin X: {} +/- {} mV".format(temperature, temperatureC, srsx*1000, srsx_std*1000))
 
             data = {
+                'Time (s)': time()-zeroTime,
                 'SRSX (V)': srsx,
                 'SRSX STD (V)': srsx_std,
                 'SRSY (V)': srsy,
@@ -87,15 +86,7 @@ class ProcedureCooling(Procedure):
             if self.should_stop():
                 log.warning("Catch stop command in procedure")
                 break
-            sleep(30)
-
-    def measure(self):
-        sleep(100e-3)
-        self.nvm.config_buffer(points=128)
-        self.nvm.start_buffer()
-        self.nvm.wait_for_buffer()
-        actual_voltages_xx = self.nvm.buffer_data
-        return np.mean(actual_voltages_xx), np.std(actual_voltages_xx)
+            sleep(85)
 
     def shutdown(self):
         self.wfg.shutdown()

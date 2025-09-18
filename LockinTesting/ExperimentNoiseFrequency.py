@@ -22,7 +22,7 @@ class ExperimentNoiseFrequency(ManagedWindow):
  
     def queue(self):
 
-        directory = "./Data"  # Change this to the desired directory
+        directory = "./Data/Lockin_Testing"  # Change this to the desired directory
         filename = unique_filename(directory, prefix='LCK_NS')
 
         procedure = self.make_procedure()
